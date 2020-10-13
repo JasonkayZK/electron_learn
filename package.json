@@ -4,7 +4,7 @@
   "description": "a repo to learn electron",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"no test specified\" && exit 0"
+    "start": "electron ."
   },
   "author": "JaonkayZK",
   "license": "MIT",
