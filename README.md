@@ -2,198 +2,122 @@
 
 一个学习Electron的仓库。
 
-### Electron环境部署
+## 通知
 
-**Electron要求主机已经部署Node环境，所以在部署Electron之前，请确保你的主机已经成功安装了Node!**
+所有三个操作系统都提供了应用程序向用户发送通知的手段。
 
-使用npm或者cnpm全局安装electron：
+Electron允许开发者使用 [HTML5 Notification API](https://notifications.spec.whatwg.org/) 发送通知，并使用当前运行的操作系统的本地通知 API 来显示它。
 
-```bash
-npm install -g electron
-或
-cnpm install -g electron
-```
+**注意:** 由于这是一个 HTML5 API，它只能在渲染器进程中使用。 如果你想在主进程中显示通知，请查看 [Notification](https://www.electronjs.org/docs/api/notification) 模块。
 
-检查：
+```javascript
+const myNotification = new Notification('Title', {
+  body: 'Lorem Ipsum Dolor Sit Amet'
+})
 
-```bash
-electron -v
-v10.1.3
-```
-
-### 创建一个简单的Electron项目
-
-#### **① 创建项目**
-
-Electron application 本质上是一个 Node. js 应用程序，与 Node.js 模块相同，应用的入口是 `package.json` 文件；
-
-一个最基本的 Electron 应用一般来说会有如下的目录结构：
-
-```
-your-app/
-├── package.json
-├── main.js
-└── index.html
-```
-
-所以我们可以使用`npm init`初始化一个项目，并编辑package.json内容如下：
-
-package.json
-
-```json
-{
-  "name": "electron_learn",
-  "version": "1.0.0",
-  "description": "a repo to learn electron",
-  "main": "main.js",
-  "scripts": {
-    "start": "electron ."
-  },
-  "author": "JaonkayZK",
-  "license": "MIT",
-  "dependencies": {
-    "app": "^0.1.0",
-    "browser-window": "^0.4.0"
-  },
-  "devDependencies": {
-    "electron": "^10.1.3"
-  }
+myNotification.onclick = () => {
+  console.log('Notification clicked')
 }
 ```
 
->   <font color="#f00">**其中的 `main` 字段所表示的脚本为应用的启动脚本，它将会在主进程中执行。**</font>
->
->   <font color="#f00">**注意：如果 `main` 字段没有在 `package.json` 中出现，那么 Electron 将会尝试加载 `index.js` 文件（就像 Node.js 自身那样）。**</font>
+虽然操作系统的代码和用户体验相似，但依然存在微妙的差异。
 
-因为在默认情况下，使用`npm start`会通过Node.js执行main.js(或者index.js)，所以我们在scripts中自定义了start命令，使得可以通过`npm start`启动我们的Electron应用；
+### [Windows](https://www.electronjs.org/docs/tutorial/notifications#windows)
 
-#### **② 编写main.js**
+-   在 Windows 10，必须被添加您应用程序[ 应用程序用户模型ID ](https://msdn.microsoft.com/en-us/library/windows/desktop/dd378459(v=vs.85).aspx)的快捷方式到开始菜单上。 This can be overkill during development, so adding `node_modules\electron\dist\electron.exe` to your Start Menu also does the trick. Navigate to the file in Explorer, right-click and 'Pin to Start Menu'. You will then need to add the line `app.setAppUserModelId(process.execPath)` to your main process to see notifications.
+-   在 Windows 8.1 和 Windows 8 上，带有 [应用程序用户模型ID（Application User Model ID）](https://msdn.microsoft.com/en-us/library/windows/desktop/dd378459(v=vs.85).aspx) 的应用程序快捷方式必须被添加到开始屏幕上。 但是请注意，它不需要被固定到开始屏幕。
+-   在 Windows 7 上，通知通过视觉上类似于较新系统原生的一个自定义的实现来工作；
 
-Electron apps 使用JavaScript开发，其工作原理和方法与Node.js 开发相同；
+Electron尝试将应用程序用户模型 ID 的相关工作自动化。 Electron在和安装和更新框架 Squirrel 协同使用的时候，[快捷方式将被自动正确的配置好](https://github.com/electron/windows-installer/blob/master/README.md#handling-squirrel-events)；
 
-在`electron`模块包含了Electron提供的所有API和功能，引入方法和普通Node.js模块一样：
+更棒的是，Electron 会自动检测 Squirrel 的存在，并且使用正确的值来自动调用`app.setAppUserModelId()`。但是在开发的过程中, 你可能需要自己调用[`app.setAppUserModelld()`](https://www.electronjs.org/docs/api/app#appsetappusermodelidid-windows)
+
+此外，在Windows 8中，通知正文的最大长度为250个字符，Windows团队建议将通知保留为200个字符。 然而，Windows 10中已经删除了这个限制，但是Windows团队要求开发人员合理使用。 尝试将大量文本发送到API(数千个字符) 可能会导致不稳定。
+
+#### [高级通知](https://www.electronjs.org/docs/tutorial/notifications#高级通知)
+
+Windows 的更高版本允许高级通知，自定义模板，图像和其他灵活元素。 要发送这些通知(来自主进程或渲染器进程)，请使用用户区模块 [electron-windows-notifications](https://github.com/felixrieseberg/electron-windows-notifications) 来用原生节点附件发送 `ToastNotification` 和 `TileNotification` 对象。
+
+虽然包含按钮的通知可以使用 `electron-windows-notifications`，但处理回复则需要使用[`electron-windows-interactive-notifications`](https://github.com/felixrieseberg/electron-windows-interactive-notifications)，这有助于注册所需的COM组件，并使用输入的用户数据调用Electron应用程序。
+
+#### [免打扰模式 / 演示模式](https://www.electronjs.org/docs/tutorial/notifications#免打扰模式--演示模式)
+
+要检测是否允许发送通知，请使用用户区模块 [electron-notification-state](https://github.com/felixrieseberg/electron-notification-state)。
+
+这样，您可以提前确定 Windows 是否会将通知忽略。
+
+### [macOS](https://www.electronjs.org/docs/tutorial/notifications#macos)
+
+MacOS上的通知是最直接的，但你应该注意[苹果关于通知的人机接口指南（Apple's Human Interface guidelines regarding notifications）](https://developer.apple.com/macos/human-interface-guidelines/system-capabilities/notifications/).
+
+请注意，通知的大小限制为256个字节，如果超过该限制，则会被截断。
+
+#### [高级通知](https://www.electronjs.org/docs/tutorial/notifications#高级通知)
+
+后来的 macOS 版本允许有一个输入字段的通知，允许用户快速回复通知。 为了通过输入字段发送通知，请使用用户区模块[node-mac-notifier](https://github.com/CharlieHess/node-mac-notifier)。
+
+#### [勿扰 / 会话状态](https://www.electronjs.org/docs/tutorial/notifications#勿扰--会话状态)
+
+要检测是否允许发送通知，请使用用户区模块 [electron-notification-state](https://github.com/felixrieseberg/electron-notification-state)。
+
+这样可以提前检测是否显示通知。
+
+### [Linux](https://www.electronjs.org/docs/tutorial/notifications#linux)
+
+通知是通过`libnotify`发送的，libnotify可以在任何实现了[桌面通知规范（Desktop Notifications Specification）](https://developer.gnome.org/notification-spec/)的桌面环境中发送通知，包括Cinnamon、Enlightenment、Unity、GNOME、KDE
+
+<br/>
+
+## 示例
+
+本分支中的通知示例采用 [node-notifier](https://www.npmjs.com/package/node-notifier)包；
+
+通过下面的代码即可实现通知：
 
 ```javascript
-const electron = require('electron')
+notifier.notify(
+    {
+        title: 'Big news!',
+        message: 'No big dual!',
+        icon: path.join(__dirname, 'clock.ico'),
+        sound: true,
+    },
+);
 ```
 
-而`electron` 模块所提供的功能都是通过命名空间暴露出来的；比如说： `electron.app`负责管理Electron 应用程序的生命周期， `electron.BrowserWindow`类负责创建窗口；
-
-下面是一个简单的`main.js`文件，它将在应用程序准备就绪后打开一个窗口；
+在win10系统本地启动时需要注意，配置AppID：
 
 ```javascript
-// 控制应用生命周期的模块
-const app = electron.app;
-// 创建原生浏览器窗口的模块
-const BrowserWindow = electron.BrowserWindow;
+// 开启通知
+app.setAppUserModelId(process.execPath)
+```
 
-function createWindow () {   
-  // 创建浏览器窗口
-  const win = new BrowserWindow({
+若在其他渲染进程使用到了electron，还需要在BrowserWindow的webPreferences属性中配置nodeIntegration：
+
+```javascript
+mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-      nodeIntegration: true
-    }
-  })
-
-  // 并且为你的应用加载index.html
-  win.loadFile('index.html')
-}
-
-app.whenReady().then(createWindow)
-```
-
-我们应当在 `main.js` 中创建窗口，并处理程序中可能遇到的所有系统事件；
-
-下面我们将完善上述例子，添加以下功能：打开开发者工具、处理窗口关闭事件、在macOS用户点击dock上图标时重建窗口，添加后，main. js 就像下面这样：
-
-```javascript
-const electron = require('electron');
-// 控制应用生命周期的模块
-const app = electron.app;
-// 创建原生浏览器窗口的模块
-const BrowserWindow = electron.BrowserWindow;
-
-// 保持一个对于 window 对象的全局引用，不然，当 JavaScript 被 GC，
-// window 会被自动地关闭
-var mainWindow = null;
-
-// 当所有窗口被关闭了，退出。
-app.on('window-all-closed', function () {
-    // 在 OS X 上，通常用户在明确地按下 Cmd + Q 之前
-    // 应用会保持活动状态
-    if (process.platform !== 'darwin') {
-        app.quit();
+        nodeIntegration: true
     }
 });
-
-// 当 Electron 完成了初始化并且准备创建浏览器窗口的时候
-// 这个方法就被调用
-app.on('ready', function () {
-    // 创建浏览器窗口。
-    mainWindow = new BrowserWindow({width: 800, height: 600});
-
-    // 加载应用的 index.html
-    mainWindow.loadURL('file://' + __dirname + '/index.html');
-
-    // 打开开发工具
-    mainWindow.openDevTools();
-
-    // 当 window 被关闭，这个事件会被发出
-    mainWindow.on('closed', function () {
-        // 取消引用 window 对象，如果你的应用支持多窗口的话，
-        // 通常会把多个 window 对象存放在一个数组里面，
-        // 但这次不是。
-        mainWindow = null;
-    });
-});
-
 ```
 
-#### **③ 编写页面**
+### 使用本示例
 
-最后，我们创建想要展示的页面：
+安装依赖：
 
-index.html
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Hello World!</title>
-</head>
-<body>
-<h1>Hello World!</h1>
-We are using io.js
-<script>document.write(process.version)</script>
-and Electron
-<script>document.write(process.versions['electron'])</script>
-.
-</body>
-</html>
+```bash
+npm install
 ```
 
-#### **④ 启动你的应用**
+运行：
 
-在创建并初始化完成 `main.js`、 `index.html`和`package.json`之后，就可以在当前工程的根目录执行 `npm start` 命令来启动刚刚编写好的Electron程序了。
-
-如果一切正常的话，就会输出一个Hello World的应用！
-
-### 尝试此例
-
-复制并运行这个库[JasonkayZK/electron_learn](https://github.com/JasonkayZK/electron_learn/tree/main)
-
-**注意**：本例需要 [Git](https://git-scm.com/) 和 [npm](https://www.npmjs.com/) 来运行；
-
-```sh
-# 克隆这仓库
-$ git clone git@github.com:JasonkayZK/electron_learn.git
-# 进入仓库
-$ cd electron_learn
-# 安装依赖库
-$ npm install
-# 运行应用
-$ npm start
+```bash
+npm start
 ```
 
+点击Basic Notification效果图：
+
+![demo](./image/demo.jpg)

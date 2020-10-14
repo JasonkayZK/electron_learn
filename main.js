@@ -4,6 +4,9 @@ const app = electron.app;
 // 创建原生浏览器窗口的模块
 const BrowserWindow = electron.BrowserWindow;
 
+// 开启通知
+app.setAppUserModelId(process.execPath)
+
 // 保持一个对于 window 对象的全局引用，不然，当 JavaScript 被 GC，
 // window 会被自动地关闭
 var mainWindow = null;
@@ -21,7 +24,13 @@ app.on('window-all-closed', function () {
 // 这个方法就被调用
 app.on('ready', function () {
     // 创建浏览器窗口。
-    mainWindow = new BrowserWindow({width: 800, height: 600});
+    mainWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        webPreferences: {
+            nodeIntegration: true
+        }
+    });
 
     // 加载应用的 index.html
     mainWindow.loadURL('file://' + __dirname + '/index.html');

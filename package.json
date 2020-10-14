@@ -1,5 +1,6 @@
 {
   "name": "electron_learn",
+  "appId": "notification_demo",
   "version": "1.0.0",
   "description": "a repo to learn electron",
   "main": "main.js",
@@ -10,7 +11,8 @@
   "license": "MIT",
   "dependencies": {
     "app": "^0.1.0",
-    "browser-window": "^0.4.0"
+    "browser-window": "^0.4.0",
+    "node-notifier": "^5.2.1"
   },
   "devDependencies": {
     "electron": "^10.1.3"
